@@ -98,7 +98,7 @@ def extract_from_itunes():
               artists[ partist ][ palbum ]=pdict.copy()
             pinc=inc
             inc=1
-            if (partist != "Unknown" and palbum != "Unknown"):
+            if (partist != "unknown" and palbum != "unknown"):
               eartist=MySQLdb.escape_string(partist)
               ealbum=MySQLdb.escape_string(palbum)
               sql = "select present from musicbrainz where artist like '" + eartist + "' and name like '" + ealbum  +"';"
@@ -125,6 +125,7 @@ def extract_from_itunes():
                   sql = "insert into musicbrainz values(" + str(pinc) + ", '" + eartist + "','" + ename + "','" + etype + "','" + eyear + "',NULL);"
                   if debug:
                     print sql
+                  print ("INFO: New album found = Count: %d Artist: %s Album: %s Year: %d" % ( pinc, eartist, ename, eyear ) )
                   sys.stdout.write("\n")
                   sys.stdout.flush()
                   r=c.execute(sql)
