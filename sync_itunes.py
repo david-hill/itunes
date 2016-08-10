@@ -123,10 +123,10 @@ def extract_from_itunes():
                   etype="Album"
                   eyear=pyear
                   sql = "insert into musicbrainz values(" + str(pinc) + ", '" + eartist + "','" + ename + "','" + etype + "','" + eyear + "',NULL);"
-                  print sql
+                  if debug:
+                    print sql
                   sys.stdout.write("\n")
                   sys.stdout.flush()
-                  print sql
                   r=c.execute(sql)
                   rall = c.fetchall()
           else:
