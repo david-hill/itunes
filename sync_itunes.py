@@ -108,7 +108,7 @@ def extract_from_itunes():
               if c.rowcount:
                 (result,)=c.fetchone()
                 if (result != pinc):
-                  print "WARNING: result != pinc"
+                  print("WARNING: %d != %d and corrected to %d for artist %s and album %s" % ( result, pinc, artists[ partist ][ palbum ]['inc'], eartist, ealbum ))
                   sql = "update musicbrainz set present=" + str(artists[ partist ][ palbum ]['inc']) + " where artist like '" + eartist + "' and name like '" + ealbum  +"';"
                   if debug:
                     print sql
@@ -122,13 +122,13 @@ def extract_from_itunes():
                   ename=MySQLdb.escape_string(palbum)
                   etype="Album"
                   eyear=pyear
-                  #sql = "insert into musicbrainz values(" + str(pinc) + ", '" + eartist + "','" + ename + "','" + etype + "','" + eyear + "',NULL);"
-                  #print sql
-                  #sys.stdout.write("\n")
-                  #sys.stdout.flush()
-                  #print sql
-                  #r=c.execute(sql)
-                  #rall = c.fetchall()
+                  sql = "insert into musicbrainz values(" + str(pinc) + ", '" + eartist + "','" + ename + "','" + etype + "','" + eyear + "',NULL);"
+                  print sql
+                  sys.stdout.write("\n")
+                  sys.stdout.flush()
+                  print sql
+                  r=c.execute(sql)
+                  rall = c.fetchall()
           else:
             inc+=1
             dict.update({'inc': inc})
