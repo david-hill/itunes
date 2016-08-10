@@ -2,6 +2,7 @@ import re
 import MySQLdb
 import sys  
 import musicbrainzngs
+import time
 from htmlentitydefs import name2codepoint as n2cp
 reload(sys)  
 sys.setdefaultencoding('utf8')
@@ -36,13 +37,20 @@ def decodeHtmlentities(string):
     return rc
 def count_itunes_locations():
   tot=0
+  if debug:
+    start = time.time()
+    end = 0
+    sys.stdout.write("DEBUG: Counting files in iTunes library ... ")
+    sys.stdout.flush()
   for line in file:
     rs="<key>Location</key><.*>(.*)</.*>"
     m = re.search(rs, line)
     if m:
       tot+=1
-      if debug:
-        print tot
+  if debug:
+    end = time.time() - start
+    sys.stdout.write("done in %ds\n" % (end))
+    sys.stdout.flush()
   return tot
 def extract_from_itunes():
   nbr_loc=count_itunes_locations()
@@ -58,7 +66,8 @@ def extract_from_itunes():
   file.seek(0)
   for line in file:
     if debug:
-      print line
+      if debug > 1:
+        print line
     for field in fields:
       rs="<key>" + field + "</key><.*>(.*)</.*>"
       m = re.search(rs, line)
@@ -108,11 +117,12 @@ def extract_from_itunes():
               if c.rowcount:
                 (result,)=c.fetchone()
                 if (result != pinc):
+                  sys.stdout.write("\n")
                   print("WARNING: %d != %d and corrected to %d for artist %s and album %s" % ( result, pinc, artists[ partist ][ palbum ]['inc'], eartist, ealbum ))
                   sql = "update musicbrainz set present=" + str(artists[ partist ][ palbum ]['inc']) + " where artist like '" + eartist + "' and name like '" + ealbum  +"';"
                   if debug:
+                    sys.stdout.write("\n")
                     print sql
-                  sys.stdout.write("\n")
                   sys.stdout.flush()
                   r=c.execute(sql)
                   rall = c.fetchall()
@@ -124,9 +134,9 @@ def extract_from_itunes():
                   eyear=pyear
                   sql = "insert into musicbrainz values(" + str(pinc) + ", '" + eartist + "','" + ename + "','" + etype + "','" + eyear + "',NULL);"
                   if debug:
+                    sys.stdout.write("\n")
                     print sql
-                  print ("INFO: New album found = Count: %d Artist: %s Album: %s Year: %d" % ( pinc, eartist, ename, eyear ) )
-                  sys.stdout.write("\n")
+                    print("INFO: New album found = Count: %d Artist: %s Album: %s Year: %d" % ( pinc, eartist, ename, int(eyear) ))
                   sys.stdout.flush()
                   r=c.execute(sql)
                   rall = c.fetchall()
