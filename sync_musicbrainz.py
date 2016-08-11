@@ -73,16 +73,18 @@ def fetch_releases(artist,myid):
               print sql
             r=c.execute(sql)
             rall = c.fetchall()
-          sys.stdout.write("\rProgress %.2f%s" % (float(offset) / float(max) * 100, '%'))
+          sys.stdout.write("\rProgress %.2f%s [%d/%d]" % (float(offset) / float(max) * 100, '%',offset,max))
           sys.stdout.flush()
         except:
           print sys.exc_info()
           pass
       offset+=25
+      if (offset > max):
+        offset=max
     except:
       print sys.exc_info()
       pass
-  sys.stdout.write("\rProgress %.2f%s\n" % (float('1') / float('1') * 100, '%'))
+  sys.stdout.write("\rProgress %.2f%s [%d/%d]\n" % (float('1') / float('1') * 100, '%', offset, max))
   sys.stdout.flush()
 
 def sync_musicbrainz():
