@@ -104,7 +104,7 @@ def sync_musicbrainz():
     sql = "select count(distinct artist) from musicbrainz where last_updated is null or last_updated < DATE_SUB(NOW(), INTERVAL 7 DAY);"
     r=c.execute(sql)
     (artistcpt,)=c.fetchone()
-    print "WARNING: %d artists were not updated!  Cleaning them..."
-    sql = "update musicbrainz set last_updated=CURRENT_TIMESTAMP musicbrainz where last_updated is null or last_updated < DATE_SUB(NOW(), INTERVAL 7 DAY);"
+    print("WARNING: %d artists were not updated!  Cleaning them..." % (artistcpt) )
+    sql = "update musicbrainz set last_updated=CURRENT_TIMESTAMP where last_updated is null or last_updated < DATE_SUB(NOW(), INTERVAL 7 DAY);"
     r=c.execute(sql)
 sync_musicbrainz()
