@@ -6,7 +6,7 @@ import time
 from htmlentitydefs import name2codepoint as n2cp
 reload(sys)  
 sys.setdefaultencoding('utf8')
-debug=0
+debug=1
 tot=0
 db = MySQLdb.connect("localhost","musicbrainz","musicbrainz","musicbrainz" )
 c = db.cursor()
@@ -144,22 +144,4 @@ def extract_from_itunes():
             inc+=1
             dict.update({'inc': inc})
                 
-def print_artists_details():
-  print "======================"
-  try:
-    for p in artists.keys():
-      print p
-      print "---"
-      try:
-        for q in artists[p]:
-          print q
-          print "|"
-      except:
-        print sys.exc_info()
-        pass
-  except:
-    print sys.exc_info()
-    pass
-
 extract_from_itunes()
-print_artists_details()
