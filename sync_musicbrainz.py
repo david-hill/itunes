@@ -2,6 +2,7 @@ import re
 import MySQLdb
 import sys  
 import musicbrainzngs
+import time
 from htmlentitydefs import name2codepoint as n2cp
 reload(sys)  
 sys.setdefaultencoding('utf8')
@@ -15,10 +16,11 @@ fields = [ 'Artist', 'Location', 'Album', 'Year' ]
 dict = {}
 artists = {}
 
+days="11.49"
+
 myid=0
 def fetch_artist(artist,cptdone,artistcpt):
   myid=0
-  print("%s\t\tTotal Progress %.2f %s [%d/%d]" % ( artist, float(cptdone) / float(artistcpt) * 100, '%', cptdone, artistcpt))
   musicbrainzngs.set_useragent('itunesync', '0.0.1', 'contact=daweidave@hotmail.com')
   try:
     result = musicbrainzngs.search_artists(artist=artist, type="group")
@@ -34,7 +36,8 @@ def fetch_artist(artist,cptdone,artistcpt):
   except:
     pass
   return myid
-def fetch_releases(artist,myid):
+
+def fetch_releases(artist,myid,albumdone,cptalbum,stime):
   try:
     result = musicbrainzngs.browse_release_groups(myid, includes=["release-group-rels"], offset=0)
     max=result["release-group-count"]
@@ -43,11 +46,13 @@ def fetch_releases(artist,myid):
     max=-1
     pass
   offset=0
+  cptartistalbum=0
   while (offset<max):
     try:
       result = musicbrainzngs.browse_release_groups(myid, includes=["release-group-rels"], offset=offset)
       max=result["release-group-count"]
       for release in result["release-group-list"]:
+        ctime=time.time()
         try:
           if 'type' not in release.keys():
             release.update({'type': 'none'})
@@ -55,6 +60,10 @@ def fetch_releases(artist,myid):
             print("{title} {date} ({type})".format(title=release["title"], type=release["type"], date=release["first-release-date"]))
           eartist=MySQLdb.escape_string(artist)
           ealbum=MySQLdb.escape_string(release["title"])
+          if albumdone > 0:
+            eta=int( float(ctime - stime) / float(albumdone) * (cptalbum - albumdone) )
+          else:
+            eta=0
           sql = "select present from musicbrainz where artist like '" + eartist + "' and name like '" + ealbum  +"' and type like '" + release["type"] + "';"
           if debug:
             print sql
@@ -72,7 +81,9 @@ def fetch_releases(artist,myid):
               print sql
             r=c.execute(sql)
             rall = c.fetchall()
-          sys.stdout.write("\rProgress %.2f%s [%d/%d]" % (float(offset) / float(max) * 100, '%',offset,max))
+          albumdone+=1
+          cptartistalbum+=1
+          sys.stdout.write("\rProgress %.2f%s [%d/%d] Running: %d s ETA: %d s" % (float(cptartistalbum) / float(max) * 100, '%',cptartistalbum,max, ctime - stime, eta))
           sys.stdout.flush()
         except:
           print sys.exc_info()
@@ -83,27 +94,69 @@ def fetch_releases(artist,myid):
     except:
       print sys.exc_info()
       pass
-  sys.stdout.write("\rProgress %.2f%s [%d/%d]\n" % (float('1') / float('1') * 100, '%', offset, max))
+  ctime=time.time()
+  if albumdone > 0:
+    eta=int( float(ctime - stime) / float(albumdone) * (cptalbum - albumdone) )
+  else:
+    eta=0
+  sys.stdout.write("\rProgress %.2f%s [%d/%d] Running: %d s ETA: %d s\n" % (float('1') / float('1') * 100, '%', offset, max, ctime - stime,eta))
   sys.stdout.flush()
 
-def sync_musicbrainz():
+  return max
+
+def count_albums():
+  cptalbum=0
   cptdone=0
-  sql = "select count(distinct artist) from musicbrainz where last_updated is null or last_updated < DATE_SUB(NOW(), INTERVAL 30 DAY);"
+  stime = time.time()
+  sys.stdout.write("\rCounting albums...\n")
+  sys.stdout.flush()
+  sql = "select count(distinct artist) from musicbrainz where last_updated is null or last_updated < DATE_SUB(NOW(), INTERVAL " + days + " DAY);"
   r=c.execute(sql)
   (artistcpt,)=c.fetchone()
   if artistcpt:
-    sql = "select artist from musicbrainz where last_updated is null or last_updated < DATE_SUB(NOW(), INTERVAL 30 DAY) group by artist;"
+    sql = "select artist from musicbrainz where last_updated is null or last_updated < DATE_SUB(NOW(), INTERVAL " + days + " DAY) group by artist;"
+    r=c.execute(sql)
+    results=c.fetchall()
+    for result in results:
+      myid=fetch_artist(result[0],cptdone,artistcpt)
+      result = musicbrainzngs.browse_release_groups(myid,'' , offset=0)
+      cptalbum+=result["release-group-count"]
+      cptdone+=1
+      ctime = time.time()
+      eta=int( float(ctime - stime) / float(cptdone) * ( artistcpt - cptdone ) )
+      sys.stdout.write("\rTotal Progress %.2f %s [%d/%d] Running: %d s ETA: %d s" % ( float(cptdone) / float(artistcpt) * 100, '%', cptdone, artistcpt, ctime - stime, eta))
+      sys.stdout.flush()
+  sys.stdout.write("done\n")
+  sys.stdout.flush()
+  return cptalbum
+
+def sync_musicbrainz(cptalbum):
+  mstart = time.time()
+  cptdone=0
+  albumdone=0
+  sql = "select count(distinct artist) from musicbrainz where last_updated is null or last_updated < DATE_SUB(NOW(), INTERVAL "+days+" DAY);"
+  r=c.execute(sql)
+  (artistcpt,)=c.fetchone()
+  if artistcpt:
+    sql = "select artist from musicbrainz where last_updated is null or last_updated < DATE_SUB(NOW(), INTERVAL "+days+" DAY) group by artist;"
     r=c.execute(sql)
     results=c.fetchall()
     for result in results:
       myid=fetch_artist(result[0],cptdone,artistcpt)
       if myid:
-        fetch_releases(result[0],myid)
+        albumdone+=fetch_releases(result[0],myid,albumdone,cptalbum,mstart)
       cptdone+=1
-    sql = "select count(distinct artist) from musicbrainz where last_updated is null or last_updated < DATE_SUB(NOW(), INTERVAL 30 DAY);"
+    sql = "select count(distinct artist) from musicbrainz where last_updated is null or last_updated < DATE_SUB(NOW(), INTERVAL "+days+" DAY);"
     r=c.execute(sql)
     (artistcpt,)=c.fetchone()
     print("WARNING: %d artists were not updated!  Cleaning them..." % (artistcpt) )
-    sql = "update musicbrainz set last_updated=CURRENT_TIMESTAMP where last_updated is null or last_updated < DATE_SUB(NOW(), INTERVAL 30 DAY);"
+    sql = "update musicbrainz set last_updated=CURRENT_TIMESTAMP where last_updated is null or last_updated < DATE_SUB(NOW(), INTERVAL "+days+" DAY);"
     r=c.execute(sql)
-sync_musicbrainz()
+
+gstart=time.time()
+cptalbum=count_albums()
+sync_musicbrainz(cptalbum)
+gend=time.time()
+print("done in %d s" % (gend - gstart))
+
+
