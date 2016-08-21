@@ -6,13 +6,13 @@ import time
 from htmlentitydefs import name2codepoint as n2cp
 reload(sys)  
 sys.setdefaultencoding('utf8')
-debug=1
+debug=0
 tot=0
 db = MySQLdb.connect("localhost","musicbrainz","musicbrainz","musicbrainz" )
 c = db.cursor()
 c.execute("SET NAMES utf8;") 
 c.execute("SET CHARACTER SET utf8;")
-file = open('iTunes Music Library.xml')
+file = open('Library.xml')
 fields = [ 'Artist', 'Location', 'Album', 'Year' ]
 dict = {}
 artists = {}
@@ -144,4 +144,8 @@ def extract_from_itunes():
             inc+=1
             dict.update({'inc': inc})
                 
+tstart = time.time()
 extract_from_itunes()
+tend = time.time() - tstart
+sys.stdout.write("done in %ds\n" % (tend))
+sys.stdout.flush()

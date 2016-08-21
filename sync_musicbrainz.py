@@ -11,7 +11,6 @@ db = MySQLdb.connect("localhost","musicbrainz","musicbrainz","musicbrainz" )
 c = db.cursor()
 c.execute("SET NAMES utf8;") 
 c.execute("SET CHARACTER SET utf8;")
-file = open('iTunes Music Library.xml')
 fields = [ 'Artist', 'Location', 'Album', 'Year' ]
 dict = {}
 artists = {}
@@ -89,11 +88,11 @@ def fetch_releases(artist,myid):
 
 def sync_musicbrainz():
   cptdone=0
-  sql = "select count(distinct artist) from musicbrainz where last_updated is null or last_updated < DATE_SUB(NOW(), INTERVAL 7 DAY);"
+  sql = "select count(distinct artist) from musicbrainz where last_updated is null or last_updated < DATE_SUB(NOW(), INTERVAL 30 DAY);"
   r=c.execute(sql)
   (artistcpt,)=c.fetchone()
   if artistcpt:
-    sql = "select artist from musicbrainz where last_updated is null or last_updated < DATE_SUB(NOW(), INTERVAL 7 DAY) group by artist;"
+    sql = "select artist from musicbrainz where last_updated is null or last_updated < DATE_SUB(NOW(), INTERVAL 30 DAY) group by artist;"
     r=c.execute(sql)
     results=c.fetchall()
     for result in results:
@@ -101,10 +100,10 @@ def sync_musicbrainz():
       if myid:
         fetch_releases(result[0],myid)
       cptdone+=1
-    sql = "select count(distinct artist) from musicbrainz where last_updated is null or last_updated < DATE_SUB(NOW(), INTERVAL 7 DAY);"
+    sql = "select count(distinct artist) from musicbrainz where last_updated is null or last_updated < DATE_SUB(NOW(), INTERVAL 30 DAY);"
     r=c.execute(sql)
     (artistcpt,)=c.fetchone()
     print("WARNING: %d artists were not updated!  Cleaning them..." % (artistcpt) )
-    sql = "update musicbrainz set last_updated=CURRENT_TIMESTAMP where last_updated is null or last_updated < DATE_SUB(NOW(), INTERVAL 7 DAY);"
+    sql = "update musicbrainz set last_updated=CURRENT_TIMESTAMP where last_updated is null or last_updated < DATE_SUB(NOW(), INTERVAL 30 DAY);"
     r=c.execute(sql)
 sync_musicbrainz()
