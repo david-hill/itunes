@@ -82,8 +82,7 @@ def fetch_releases(artist,myid,albumdone,cptalbum,stime):
             r=c.execute(sql)
             rall = c.fetchall()
           albumdone+=1
-          cptartistalbum+=1
-          sys.stdout.write("\rProgress %.2f%s [%d/%d] Running: %d s ETA: %d s" % (float(cptartistalbum) / float(max) * 100, '%',cptartistalbum,max, ctime - stime, eta))
+          sys.stdout.write("\rProgress %.2f%s [%d/%d] Running: %d s ETA: %d s" % (float(albumdone) / float(cptalbum) * 100, '%',albumdone,max, ctime - stime, eta))
           sys.stdout.flush()
         except:
           print sys.exc_info()
@@ -94,13 +93,6 @@ def fetch_releases(artist,myid,albumdone,cptalbum,stime):
     except:
       print sys.exc_info()
       pass
-  ctime=time.time()
-  if albumdone > 0:
-    eta=int( float(ctime - stime) / float(albumdone) * (cptalbum - albumdone) )
-  else:
-    eta=0
-  sys.stdout.write("\rProgress %.2f%s [%d/%d] Running: %d s ETA: %d s\n" % (float('1') / float('1') * 100, '%', offset, max, ctime - stime,eta))
-  sys.stdout.flush()
 
   return max
 
