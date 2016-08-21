@@ -63,20 +63,23 @@ def extract_from_itunes():
   pinc=0
   inc=0
   prog=0
+  eta=0
   file.seek(0)
+  estart = time.time()
   for line in file:
     if debug:
       if debug > 1:
         print line
     for field in fields:
       rs="<key>" + field + "</key><.*>(.*)</.*>"
+      ctime = time.time()
       m = re.search(rs, line)
       if m:
         if field is not 'Location':
           dict.update({field:m.group(1)})
         if field is 'Location':
           prog+=1 
-          sys.stdout.write("\rProgress %.2f%s [%d/%d]" % (float(prog) / float(nbr_loc) * 100, '%', prog, nbr_loc))
+          sys.stdout.write("\rProgress %.2f%s [%d/%d] Running: %d s ETA: %d s" % (float(prog) / float(nbr_loc) * 100, '%', prog, nbr_loc, ctime - estart,  eta  ) )
           sys.stdout.flush()
           for f in fields:
             if f is not 'Location':
@@ -96,6 +99,7 @@ def extract_from_itunes():
           except:
             year='0'
           if (partist != artist or palbum != album):
+            eta=int( float(ctime - estart) / float(prog) * (nbr_loc - prog) )
             for p in artists.keys():
               if p == partist:
                 if palbum not in artists[ partist ].keys():
@@ -147,5 +151,5 @@ def extract_from_itunes():
 tstart = time.time()
 extract_from_itunes()
 tend = time.time() - tstart
-sys.stdout.write("done in %ds\n" % (tend))
+sys.stdout.write("\n\ndone in %ds\n" % (tend))
 sys.stdout.flush()
