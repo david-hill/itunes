@@ -16,7 +16,7 @@ fields = [ 'Artist', 'Location', 'Album', 'Year' ]
 dict = {}
 artists = {}
 
-days="11.49"
+hours="272"
 
 myid=0
 def fetch_artist(artist,cptdone,artistcpt):
@@ -70,19 +70,18 @@ def fetch_releases(artist,myid,albumdone,cptalbum,stime):
           r=c.execute(sql)
           if c.rowcount:
             (result,)=c.fetchone()
-            sql = "update musicbrainz set last_updated=CURRENT_TIMESTAMP where artist like '" + eartist + "' and name like '" + ealbum + "' and type like '" + release["type"] + "' and year like '" + release["first-release-date"] + "';"
             if debug:
               print sql
-            r=c.execute(sql)
-            rall = c.fetchall()
           else:
-            sql = "insert into musicbrainz values(0, '" + eartist + "','" + ealbum + "','" + release["type"] + "','" + release["first-release-date"] + "', CURRENT_TIMESTAMP);"
+            year=release["first-release-date"]
+            eyear=year[:4]
+            sql = "insert into musicbrainz values(0, '" + eartist + "','" + ealbum + "','" + release["type"] + "','" + eyear + "', CURRENT_TIMESTAMP);"
             if debug:
               print sql
             r=c.execute(sql)
             rall = c.fetchall()
           albumdone+=1
-          sys.stdout.write("\rProgress %.2f%s [%d/%d] Running: %d s ETA: %d s" % (float(albumdone) / float(cptalbum) * 100, '%',albumdone,max, ctime - stime, eta))
+          sys.stdout.write("\rProgress %.2f%s [%d/%d] Running: %d s ETA: %d s" % (float(albumdone) / float(cptalbum) * 100, '%',albumdone,cptalbum, ctime - stime, eta))
           sys.stdout.flush()
         except:
           print sys.exc_info()
@@ -99,14 +98,15 @@ def fetch_releases(artist,myid,albumdone,cptalbum,stime):
 def count_albums():
   cptalbum=0
   cptdone=0
+  results=0
   stime = time.time()
   sys.stdout.write("\rCounting albums...\n")
   sys.stdout.flush()
-  sql = "select count(distinct artist) from musicbrainz where last_updated is null or last_updated < DATE_SUB(NOW(), INTERVAL " + days + " DAY);"
+  sql = "select count(distinct artist) from musicbrainz where last_updated is null or last_updated < DATE_SUB(NOW(), INTERVAL " + hours + " HOUR);"
   r=c.execute(sql)
   (artistcpt,)=c.fetchone()
   if artistcpt:
-    sql = "select artist from musicbrainz where last_updated is null or last_updated < DATE_SUB(NOW(), INTERVAL " + days + " DAY) group by artist;"
+    sql = "select artist from musicbrainz where last_updated is null or last_updated < DATE_SUB(NOW(), INTERVAL " + hours + " HOUR) group by artist;"
     r=c.execute(sql)
     results=c.fetchall()
     for result in results:
@@ -120,34 +120,25 @@ def count_albums():
       sys.stdout.flush()
   sys.stdout.write("done\n")
   sys.stdout.flush()
-  return cptalbum
+  return (results,artistcpt,cptalbum)
 
-def sync_musicbrainz(cptalbum):
+def sync_musicbrainz(results,artistcpt,cptalbum):
   mstart = time.time()
   cptdone=0
   albumdone=0
-  sql = "select count(distinct artist) from musicbrainz where last_updated is null or last_updated < DATE_SUB(NOW(), INTERVAL "+days+" DAY);"
-  r=c.execute(sql)
-  (artistcpt,)=c.fetchone()
   if artistcpt:
-    sql = "select artist from musicbrainz where last_updated is null or last_updated < DATE_SUB(NOW(), INTERVAL "+days+" DAY) group by artist;"
-    r=c.execute(sql)
-    results=c.fetchall()
     for result in results:
       myid=fetch_artist(result[0],cptdone,artistcpt)
       if myid:
         albumdone+=fetch_releases(result[0],myid,albumdone,cptalbum,mstart)
       cptdone+=1
-    sql = "select count(distinct artist) from musicbrainz where last_updated is null or last_updated < DATE_SUB(NOW(), INTERVAL "+days+" DAY);"
-    r=c.execute(sql)
-    (artistcpt,)=c.fetchone()
-    print("WARNING: %d artists were not updated!  Cleaning them..." % (artistcpt) )
-    sql = "update musicbrainz set last_updated=CURRENT_TIMESTAMP where last_updated is null or last_updated < DATE_SUB(NOW(), INTERVAL "+days+" DAY);"
-    r=c.execute(sql)
+      eartist=MySQLdb.escape_string(result[0])
+      sql = "update musicbrainz set last_updated=CURRENT_TIMESTAMP where artist like '"+eartist+"';"
+      r=c.execute(sql)
 
 gstart=time.time()
-cptalbum=count_albums()
-sync_musicbrainz(cptalbum)
+(results, artistcpt, cptalbum)=count_albums()
+sync_musicbrainz(results,artistcpt,cptalbum)
 gend=time.time()
 print("done in %d s" % (gend - gstart))
 
