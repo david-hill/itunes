@@ -71,7 +71,7 @@ def fetch_releases(artist,myid,albumdone,cptalbum,stime):
           if c.rowcount:
             (result,)=c.fetchone()
             if debug:
-              print sql
+              print "%d" . result
           else:
             year=release["first-release-date"]
             eyear=year[:4]
