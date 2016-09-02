@@ -16,7 +16,7 @@ fields = [ 'Artist', 'Location', 'Album', 'Year' ]
 dict = {}
 artists = {}
 
-hours="272"
+hours="720"
 
 myid=0
 def fetch_artist(artist,cptdone,artistcpt):
@@ -70,8 +70,6 @@ def fetch_releases(artist,myid,albumdone,cptalbum,stime):
           r=c.execute(sql)
           if c.rowcount:
             (result,)=c.fetchone()
-            if debug:
-              print "%d" . result
           else:
             year=release["first-release-date"]
             eyear=year[:4]
