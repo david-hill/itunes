@@ -79,7 +79,7 @@ def extract_from_itunes():
           dict.update({field:m.group(1)})
         if field is 'Location':
           prog+=1 
-          sys.stdout.write("\rProgress %.2f%s [%d/%d] Running: %d s ETA: %d s" % (float(prog) / float(nbr_loc) * 100, '%', prog, nbr_loc, ctime - estart,  eta  ) )
+          sys.stdout.write("\rProgress %.2f%s [%d/%d] Running: %ds ETA: %ds" % (float(prog) / float(nbr_loc) * 100, '%', prog, nbr_loc, ctime - estart,  eta  ) )
           sys.stdout.flush()
           for f in fields:
             if f is not 'Location':

@@ -79,7 +79,7 @@ def fetch_releases(artist,myid,albumdone,cptalbum,stime):
             r=c.execute(sql)
             rall = c.fetchall()
           albumdone+=1
-          sys.stdout.write("\rProgress %.2f%s [%d/%d] Running: %d s ETA: %d s" % (float(albumdone) / float(cptalbum) * 100, '%',albumdone,cptalbum, ctime - stime, eta))
+          sys.stdout.write("\rProgress %.2f%s [%d/%d] Running: %ds ETA: %ds" % (float(albumdone) / float(cptalbum) * 100, '%',albumdone,cptalbum, ctime - stime, eta))
           sys.stdout.flush()
         except:
           print sys.exc_info()
@@ -98,7 +98,7 @@ def count_albums():
   cptdone=0
   results=0
   stime = time.time()
-  sys.stdout.write("\rCounting albums...\n")
+  sys.stdout.write("\rCounting albums...")
   sys.stdout.flush()
   sql = "select count(distinct artist) from musicbrainz where last_updated is null or last_updated < DATE_SUB(NOW(), INTERVAL " + hours + " HOUR);"
   r=c.execute(sql)
@@ -138,6 +138,6 @@ gstart=time.time()
 (results, artistcpt, cptalbum)=count_albums()
 sync_musicbrainz(results,artistcpt,cptalbum)
 gend=time.time()
-print("done in %d s" % (gend - gstart))
+print("completed in %ds" % (gend - gstart))
 
 
