@@ -109,9 +109,18 @@ def count_albums():
     r=c.execute(sql)
     results=c.fetchall()
     for result in results:
-      myid=fetch_artist(result[0],cptdone,artistcpt)
-      result = musicbrainzngs.browse_release_groups(myid,'' , offset=0)
-      cptalbum+=result["release-group-count"]
+      try:
+        myid=fetch_artist(result[0],cptdone,artistcpt)
+        result = musicbrainzngs.browse_release_groups(myid,'' , offset=0)
+      except:
+        try:
+          myid=fetch_artist(result[0],cptdone,artistcpt)
+          result = musicbrainzngs.browse_release_groups(myid,'' , offset=0)
+        except:
+          print sys.exc_info()
+          pass
+      if isinstance( result["release-group-count"], int ):
+        cptalbum+=result["release-group-count"]
       cptdone+=1
       ctime = time.time()
       eta=int( float(ctime - stime) / float(cptdone) * ( artistcpt - cptdone ) )
