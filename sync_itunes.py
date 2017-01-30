@@ -123,7 +123,8 @@ def extract_from_itunes():
                 (result,)=c.fetchone()
                 if (result != pinc):
                   sys.stdout.write("\n")
-                  print("WARNING: %d != %d and corrected to %d for artist %s and album %s" % ( result, pinc, artists[ partist ][ palbum ]['inc'], eartist, ealbum ))
+                  if debug:
+                    print("WARNING: %d != %d and corrected to %d for artist %s and album %s" % ( result, pinc, artists[ partist ][ palbum ]['inc'], eartist, ealbum ))
                   sql = "update musicbrainz set present=" + str(artists[ partist ][ palbum ]['inc']) + " where artist like '" + eartist + "' and name like '" + ealbum  +"';"
                   if debug:
                     sys.stdout.write("\n")
