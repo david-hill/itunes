@@ -4,12 +4,12 @@ import MySQLdb
 import sys  
 import musicbrainzngs
 import time
-from htmlentitydefs import name2codepoint as n2cp
-reload(sys)  
-sys.setdefaultencoding('utf8')
-debug=0
+from html.entities import name2codepoint as n2cp
+max_artists=100
+max_albums=100000
+debug=1
 tot=0
-db = MySQLdb.connect("localhost","musicbrainz","musicbrainz","musicbrainz" )
+db = MySQLdb.connect("192.168.1.3","musicbrainz","musicbrainz","musicbrainz" )
 c = db.cursor()
 c.execute("SET NAMES utf8;") 
 c.execute("SET CHARACTER SET utf8;")
@@ -32,7 +32,7 @@ def fetch_artist(artist,cptdone,artistcpt):
         if not myid:
           myid=artist["id"]
       except:
-        print sys.exc_info()
+        print("%s",sys.exc_info())
         pass
   except:
     pass
@@ -43,55 +43,57 @@ def fetch_releases(artist,myid,albumdone,cptalbum,stime):
     result = musicbrainzngs.browse_release_groups(myid, includes=["release-group-rels"], offset=0)
     max=result["release-group-count"]
   except:
-    print sys.exc_info()
+    print("%s", sys.exc_info())
     max=-1
     pass
   offset=0
   cptartistalbum=0
-  while (offset<max):
-    try:
-      result = musicbrainzngs.browse_release_groups(myid, includes=["release-group-rels"], offset=offset)
-      max=result["release-group-count"]
-      for release in result["release-group-list"]:
-        ctime=time.time()
-        try:
-          if 'type' not in release.keys():
-            release.update({'type': 'none'})
-          if debug:
-            print("{title} {date} ({type})".format(title=release["title"], type=release["type"], date=release["first-release-date"]))
-          eartist=MySQLdb.escape_string(artist)
-          ealbum=MySQLdb.escape_string(release["title"])
-          if albumdone > 0:
-            eta=int( float(ctime - stime) / float(albumdone) * (cptalbum - albumdone) )
-          else:
-            eta=0
-          sql = "select present from musicbrainz where artist like '" + eartist + "' and name like '" + ealbum  +"' and type like '" + release["type"] + "';"
-          if debug:
-            print sql
-          r=c.execute(sql)
-          if c.rowcount:
-            (result,)=c.fetchone()
-          else:
-            year=release["first-release-date"]
-            eyear=year[:4]
-            sql = "insert into musicbrainz values(0, '" + eartist + "','" + ealbum + "','" + release["type"] + "','" + eyear + "', CURRENT_TIMESTAMP);"
+  if max < max_albums:
+    while (offset<max ):
+      try:
+        result = musicbrainzngs.browse_release_groups(myid, includes=["release-group-rels"], offset=offset)
+        max=result["release-group-count"]
+        for release in result["release-group-list"]:
+          ctime=time.time()
+          try:
+            if 'type' not in release.keys():
+              release.update({'type': 'none'})
             if debug:
-              print sql
+              print("{title} {date} ({type})".format(title=release["title"], type=release["type"], date=release["first-release-date"]))
+            eartist=MySQLdb.escape_string(artist)
+            ealbum=MySQLdb.escape_string(release["title"])
+            if albumdone > 0:
+              eta=int( float(ctime - stime) / float(albumdone) * (cptalbum - albumdone) )
+            else:
+              eta=0
+            sql = "select present from musicbrainz where artist like '" + eartist + "' and name like '" + ealbum  +"' and type like '" + release["type"] + "';"
+            if debug:
+              print("%s", sql)
             r=c.execute(sql)
-            rall = c.fetchall()
-          albumdone+=1
-          sys.stdout.write("\rProgress %.2f%s [%d/%d] Running: %ds ETA: %ds" % (float(albumdone) / float(cptalbum) * 100, '%',albumdone,cptalbum, ctime - stime, eta))
-          sys.stdout.flush()
-        except:
-          print sys.exc_info()
-          pass
-      offset+=25
-      if (offset > max):
-        offset=max
-    except:
-      print sys.exc_info()
-      pass
-
+            if c.rowcount:
+              (result,)=c.fetchone()
+            else:
+              year=release["first-release-date"]
+              eyear=year[:4]
+              sql = "insert into musicbrainz values(0, '" + eartist + "','" + ealbum + "','" + release["type"] + "','" + eyear + "', CURRENT_TIMESTAMP);"
+              if debug:
+                print("%s",sql)
+              r=c.execute(sql)
+              rall = c.fetchall()
+            albumdone+=1
+            sys.stdout.write("\rProgress %.2f%s [%d/%d] Running: %ds ETA: %ds" % (float(albumdone) / float(cptalbum) * 100, '%',albumdone,cptalbum, ctime - stime, eta))
+            sys.stdout.flush()
+          except:
+            print("%s",sys.exc_info())
+            pass
+        offset+=25
+        if (offset > max):
+          offset=max
+      except:
+        print("%s", sys.exc_info())
+        pass
+  else:
+    print("WARNING: %s has more than %s albums" % artist , max_albums )
   return max
 
 def count_albums():
@@ -108,7 +110,7 @@ def count_albums():
     sql = "select artist from musicbrainz where last_updated is null or last_updated < DATE_SUB(NOW(), INTERVAL " + hours + " HOUR) group by artist;"
     r=c.execute(sql)
     results=c.fetchall()
-    for result in results:
+    for result in results[0:max_artists]:
       try:
         myid=fetch_artist(result[0],cptdone,artistcpt)
         result = musicbrainzngs.browse_release_groups(myid,'' , offset=0)
@@ -117,10 +119,17 @@ def count_albums():
           myid=fetch_artist(result[0],cptdone,artistcpt)
           result = musicbrainzngs.browse_release_groups(myid,'' , offset=0)
         except:
-          print sys.exc_info()
+          print("%s",sys.exc_info())
           pass
-      if isinstance( result["release-group-count"], int ):
-        cptalbum+=result["release-group-count"]
+      try:
+        if isinstance( result["release-group-count"], int ):
+          if result["release-group-count"] > max_albums:
+             print("WARNING: Artist %s has more than %s albums" %  result[0], max_albums )
+             continue
+          cptalbum+=result["release-group-count"]
+      except:
+        print("%s",sys.exc_info())
+        pass
       cptdone+=1
       ctime = time.time()
       eta=int( float(ctime - stime) / float(cptdone) * ( artistcpt - cptdone ) )
@@ -130,24 +139,27 @@ def count_albums():
   sys.stdout.flush()
   return (results,artistcpt,cptalbum)
 
+def set_last_updated(results,artistcpt):
+  if artistcpt:
+    for result in results[0:max_artists]:
+      eartist=MySQLdb.escape_string(result[0])
+      sql = "update musicbrainz set last_updated=CURRENT_TIMESTAMP where artist like '"+eartist+"';"
+      r=c.execute(sql)
+
 def sync_musicbrainz(results,artistcpt,cptalbum):
   mstart = time.time()
   cptdone=0
   albumdone=0
   if artistcpt:
-    for result in results:
+    for result in results[0:max_artists]:
       myid=fetch_artist(result[0],cptdone,artistcpt)
       if myid:
         albumdone+=fetch_releases(result[0],myid,albumdone,cptalbum,mstart)
       cptdone+=1
-      eartist=MySQLdb.escape_string(result[0])
-      sql = "update musicbrainz set last_updated=CURRENT_TIMESTAMP where artist like '"+eartist+"';"
-      r=c.execute(sql)
 
 gstart=time.time()
 (results, artistcpt, cptalbum)=count_albums()
+set_last_updated(results,artistcpt)
 sync_musicbrainz(results,artistcpt,cptalbum)
 gend=time.time()
 print("completed in %ds" % (gend - gstart))
-
-
