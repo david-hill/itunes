@@ -4,12 +4,12 @@ import MySQLdb
 import sys  
 import musicbrainzngs
 import time
-from htmlentitydefs import name2codepoint as n2cp
-reload(sys)  
-sys.setdefaultencoding('utf8')
-debug=0
+from html.entities import name2codepoint as n2cp
+#reload(sys)  
+#sys.setdefaultencoding('utf8')
+debug=1
 tot=0
-db = MySQLdb.connect("localhost","musicbrainz","musicbrainz","musicbrainz" )
+db = MySQLdb.connect("192.168.1.3","musicbrainz","musicbrainz","musicbrainz" )
 c = db.cursor()
 c.execute("SET NAMES utf8;") 
 c.execute("SET CHARACTER SET utf8;")
@@ -33,7 +33,7 @@ def decodeHtmlentities(string):
                   return match.group()
       rc=entity_re.subn(substitute_entity, string)[0]
     except:
-      print sys.exc_info()
+      print("%s",sys.exc_info())
       pass
     return rc
 def count_itunes_locations():
@@ -55,7 +55,7 @@ def count_itunes_locations():
   return tot
 def extract_from_itunes():
   nbr_loc=count_itunes_locations()
-  print "Extracting " + str(nbr_loc) + " songs..."
+  print("Extracting " + str(nbr_loc) + " songs...")
   album='empty'
   artist='empty'
   partist='empty'
@@ -70,7 +70,7 @@ def extract_from_itunes():
   for line in file:
     if debug:
       if debug > 1:
-        print line
+        print("%s", line)
     for field in fields:
       rs="<key>" + field + "</key><.*>(.*)</.*>"
       ctime = time.time()
@@ -86,7 +86,7 @@ def extract_from_itunes():
             if f is not 'Location':
               try:
                 if debug:
-                  print dict[f]
+                  print("%s", dict[f])
               except:
                 pass
           pdict=dict
@@ -117,7 +117,7 @@ def extract_from_itunes():
               ealbum=MySQLdb.escape_string(palbum)
               sql = "select present from musicbrainz where artist like '" + eartist + "' and name like '" + ealbum  +"';"
               if debug:
-                print sql
+                print("%s", sql)
               r=c.execute(sql)
               if c.rowcount:
                 (result,)=c.fetchone()
@@ -128,7 +128,7 @@ def extract_from_itunes():
                   sql = "update musicbrainz set present=" + str(artists[ partist ][ palbum ]['inc']) + " where artist like '" + eartist + "' and name like '" + ealbum  +"';"
                   if debug:
                     sys.stdout.write("\n")
-                    print sql
+                    print("%s", sql)
                   sys.stdout.flush()
                   r=c.execute(sql)
                   rall = c.fetchall()
@@ -141,7 +141,7 @@ def extract_from_itunes():
                   sql = "insert into musicbrainz values(" + str(pinc) + ", '" + eartist + "','" + ename + "','" + etype + "','" + eyear + "',NULL);"
                   if debug:
                     sys.stdout.write("\n")
-                    print sql
+                    print("%s", sql)
                     print("INFO: New album found = Count: %d Artist: %s Album: %s Year: %d" % ( pinc, eartist, ename, int(eyear) ))
                   sys.stdout.flush()
                   r=c.execute(sql)
