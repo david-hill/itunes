@@ -5,7 +5,7 @@ import sys
 import musicbrainzngs
 import time
 from html.entities import name2codepoint as n2cp
-max_artists=10
+max_artists=100
 max_albums=100000
 debug=0
 tot=0
@@ -145,7 +145,7 @@ def set_last_updated(results,artistcpt):
   if artistcpt:
     for result in results[0:max_artists]:
       eartist=MySQLdb.escape_string(result[0])
-      print("%s", eartist.decode())
+      print("%s" % eartist.decode())
       sql = "update musicbrainz set last_updated=CURRENT_TIMESTAMP where artist like '"+ eartist.decode() +"';"
       r=c.execute(sql)
 
