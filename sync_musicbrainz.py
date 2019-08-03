@@ -5,12 +5,14 @@ import sys
 import musicbrainzngs
 import time
 from html.entities import name2codepoint as n2cp
-max_artists=100
+max_artists=10
 max_albums=100000
-debug=1
+debug=0
 tot=0
 db = MySQLdb.connect("192.168.1.3","musicbrainz","musicbrainz","musicbrainz" )
 c = db.cursor()
+db.set_character_set('utf8')
+c.execute('SET character_set_connection=utf8;')
 c.execute("SET NAMES utf8;") 
 c.execute("SET CHARACTER SET utf8;")
 fields = [ 'Artist', 'Location', 'Album', 'Year' ]
@@ -32,7 +34,7 @@ def fetch_artist(artist,cptdone,artistcpt):
         if not myid:
           myid=artist["id"]
       except:
-        print("%s",sys.exc_info())
+        print("%s",sys.exc_info().decode())
         pass
   except:
     pass
@@ -43,7 +45,7 @@ def fetch_releases(artist,myid,albumdone,cptalbum,stime):
     result = musicbrainzngs.browse_release_groups(myid, includes=["release-group-rels"], offset=0)
     max=result["release-group-count"]
   except:
-    print("%s", sys.exc_info())
+    print("%s", sys.exc_info().decode())
     max=-1
     pass
   offset=0
@@ -66,7 +68,7 @@ def fetch_releases(artist,myid,albumdone,cptalbum,stime):
               eta=int( float(ctime - stime) / float(albumdone) * (cptalbum - albumdone) )
             else:
               eta=0
-            sql = "select present from musicbrainz where artist like '" + eartist + "' and name like '" + ealbum  +"' and type like '" + release["type"] + "';"
+            sql = "select present from musicbrainz where artist like '" + eartist.decode() + "' and name like '" + ealbum.decode()  +"' and type like '" + release["type"] + "';"
             if debug:
               print("%s", sql)
             r=c.execute(sql)
@@ -75,7 +77,7 @@ def fetch_releases(artist,myid,albumdone,cptalbum,stime):
             else:
               year=release["first-release-date"]
               eyear=year[:4]
-              sql = "insert into musicbrainz values(0, '" + eartist + "','" + ealbum + "','" + release["type"] + "','" + eyear + "', CURRENT_TIMESTAMP);"
+              sql = "insert into musicbrainz values(0, '" + eartist.decode() + "','" + ealbum.decode() + "','" + release["type"] + "','" + eyear + "', CURRENT_TIMESTAMP);"
               if debug:
                 print("%s",sql)
               r=c.execute(sql)
@@ -84,16 +86,16 @@ def fetch_releases(artist,myid,albumdone,cptalbum,stime):
             sys.stdout.write("\rProgress %.2f%s [%d/%d] Running: %ds ETA: %ds" % (float(albumdone) / float(cptalbum) * 100, '%',albumdone,cptalbum, ctime - stime, eta))
             sys.stdout.flush()
           except:
-            print("%s",sys.exc_info())
+            print("%s",sys.exc_info().decode())
             pass
         offset+=25
         if (offset > max):
           offset=max
       except:
-        print("%s", sys.exc_info())
+        print("%s", sys.exc_info().decode())
         pass
   else:
-    print("WARNING: %s has more than %s albums" % artist , max_albums )
+    print("WARNING: %s has more than %s albums" % ( artist , max_albums ) )
   return max
 
 def count_albums():
@@ -113,22 +115,22 @@ def count_albums():
     for result in results[0:max_artists]:
       try:
         myid=fetch_artist(result[0],cptdone,artistcpt)
-        result = musicbrainzngs.browse_release_groups(myid,'' , offset=0)
+        res = musicbrainzngs.browse_release_groups(myid,'' , offset=0)
       except:
         try:
           myid=fetch_artist(result[0],cptdone,artistcpt)
-          result = musicbrainzngs.browse_release_groups(myid,'' , offset=0)
+          res = musicbrainzngs.browse_release_groups(myid,'' , offset=0)
         except:
-          print("%s",sys.exc_info())
+          print("%s",sys.exc_info().decode())
           pass
       try:
-        if isinstance( result["release-group-count"], int ):
-          if result["release-group-count"] > max_albums:
-             print("WARNING: Artist %s has more than %s albums" %  result[0], max_albums )
+        if isinstance( res["release-group-count"], int ):
+          if res["release-group-count"] > max_albums:
+             print("WARNING: Artist %s has more than %s/%s albums" % ( result[0], res["release-group-count"] , max_albums ) )
              continue
-          cptalbum+=result["release-group-count"]
+          cptalbum+=res["release-group-count"]
       except:
-        print("%s",sys.exc_info())
+        print("%s",sys.exc_info().decode())
         pass
       cptdone+=1
       ctime = time.time()
@@ -143,7 +145,8 @@ def set_last_updated(results,artistcpt):
   if artistcpt:
     for result in results[0:max_artists]:
       eartist=MySQLdb.escape_string(result[0])
-      sql = "update musicbrainz set last_updated=CURRENT_TIMESTAMP where artist like '"+eartist+"';"
+      print("%s", eartist.decode())
+      sql = "update musicbrainz set last_updated=CURRENT_TIMESTAMP where artist like '"+ eartist.decode() +"';"
       r=c.execute(sql)
 
 def sync_musicbrainz(results,artistcpt,cptalbum):
