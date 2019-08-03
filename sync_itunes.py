@@ -77,7 +77,7 @@ def extract_from_itunes():
 #    if prog > 1000:
 #      break
     if debug > 1:
-      print("%s", line)
+      print("%s" % line)
     for field in fields:
       rs="<key>" + field + "</key><.*>(.*)</.*>"
       ctime = time.time()
@@ -93,7 +93,7 @@ def extract_from_itunes():
             if f is not 'Location':
               try:
                 if debug:
-                  print("%s", dict[f])
+                  print("dict: %s" % dict[f])
               except:
                 pass
           pdict=dict
@@ -102,7 +102,7 @@ def extract_from_itunes():
           pyear=year
           artist=str(decodeHtmlentities(dict['Artist'])).lower()
           album=str(decodeHtmlentities(dict['Album'])).lower()
-          print("%s %s" % ( artist, album ) )
+          print("artist: %s, album: %s" % ( artist, album ) )
           try:
             year=decodeHtmlentities(dict['Year'])
           except:
@@ -136,23 +136,23 @@ for artist in artists:
   if artist == 'empty':
     continue
   if debug:
-    print("%s", artist)
+    print("Artist: %s" % artist)
   for album in artists[artist]:
     if debug:
-      print("%s", album)
+      print("Album: %s" % album)
     if artists[artist][album]['inc']:
       ctime = time.time()
       prog+=artists[artist][album]['inc']
       eta=int( float(ctime - estart) / float(prog) * (nbr_loc - prog) )
       sys.stdout.write("\rProgress %.2f%s [%d/%d] Running: %ds ETA: %ds" % (float(prog) / float(nbr_loc) * 100, '%', prog, nbr_loc, ctime - estart,  eta  ) )
       if debug:
-        print("%s", artists[artist][album]['inc'])
+        print("Count: %s" % artists[artist][album]['inc'])
       if (artist != "unknown" and album != "unknown"):
         eartist=MySQLdb.escape_string(artist).decode()
         ealbum=MySQLdb.escape_string(album).decode()
         sql = "select present from musicbrainz where artist like '" + eartist + "' and name like '" + ealbum  +"';"
         if debug:
-          print("%s", sql)
+          print("sql: %s" % sql)
         r=c.execute(sql)
         if c.rowcount:
           (result,)=c.fetchone()
@@ -163,7 +163,7 @@ for artist in artists:
             sql = "update musicbrainz set present=" + str(artists[ artist ][ album ]['inc']) + " where artist like '" + eartist + "' and name like '" + ealbum  +"';"
             if debug:
               sys.stdout.write("\n")
-              print("%s", sql)
+              print("sql: %s" % sql)
             sys.stdout.flush()
             r=c.execute(sql)
             rall = c.fetchall()
@@ -174,7 +174,7 @@ for artist in artists:
             sql = "insert into musicbrainz values(" + str(artists[ artist ][ album ]['inc']) + ", '" + eartist + "','" + ealbum + "','" + etype + "','" + eyear + "',NULL);"
             if debug:
               sys.stdout.write("\n")
-              print("%s", sql)
+              print("sql: %s" % sql)
               print("INFO: New album found = Count: %d Artist: %s Album: %s Year: %d" % ( artists[ artist ][ album ]['inc'], eartist, ealbum, int(eyear) ))
             try:
               sys.stdout.flush()
